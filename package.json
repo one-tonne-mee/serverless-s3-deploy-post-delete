@@ -1,15 +1,15 @@
 {
-  "name": "serverless-s3-deploy",
-  "version": "0.10.1",
-  "description": "S3 Asset copy for serverless",
+  "name": "serverless-s3-deploy-post-delete",
+  "version": "0.10.3",
+  "description": "S3 Asset copy for serverless with ability to delete old stuff after push",
   "main": "index.js",
   "scripts": {
     "lint": "eslint index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Curtis Maloney",
+  "author": "One Tonne Me",
   "contributors": [
-    "Dan Rumney <dancrumb@gmail.com>"
+    "Dan Rumney <dancrumb@gmail.com>", "Curtis Maloney"
   ],
   "license": "MIT",
   "repository": {
@@ -17,7 +17,6 @@
     "url": "git+https://github.com/funkybob/serverless-s3-deploy.git"
   },
   "dependencies": {
-    "bluebird": "^3.7.2",
     "glob-all": "^3.2.1",
     "mime-types": "^2.1.32"
   },

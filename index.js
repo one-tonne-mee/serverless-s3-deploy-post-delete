@@ -113,35 +113,42 @@ class Assets {
     }
   }
 
-  emptyBucket(bucket, dir) {
-    const listParams = {
-      Bucket: bucket,
-      Prefix: dir
-    };
+  async listItems(Bucket, Prefix) {
+    const listParams = { Bucket, Prefix}
+    const deleteBucketKey = Bucket + Prefix
+    if(!this.listedObjects ) {
+      this.listedObjects = {}
+    }
+    this.listedObjects[deleteBucketKey] = await new Promise((res,rej) => {
+      this.provider.request('S3', 'listObjectsV2', listParams).then(res(listedObjects))
+    })
+  }
 
-    return this.provider.request('S3', 'listObjectsV2', listParams)
-      .then((listedObjects) => {
-        if (listedObjects.Contents.length === 0) return;
+  async emptyBucket(bucket, dir) {
+    const deleteBucketKey = bucket + dir
 
-        const deleteParams = {
-          Bucket: bucket,
-          Delete: { Objects: [] }
-        };
-
-        listedObjects.Contents.forEach(({ Key }) => {
-          deleteParams.Delete.Objects.push({ Key });
-        });
-        return this.provider.request('S3', 'deleteObjects', deleteParams)
+    if (this.listedObjects[deleteBucketKey] 
+      && this.listedObjects[deleteBucketKey].Contents 
+      && this.listedObjects[deleteBucketKey].Contents.length) {
+      const deleteParams = {
+        Bucket: bucket,
+        Delete: { Objects: [] }
+      };
+      this.listedObjects[deleteBucketKey].Contents.forEach(({ Key }) => {
+        deleteParams.Delete.Objects.push({ Key });
+      });
+      return this.provider.request('S3', 'deleteObjects', deleteParams)
           .then(() => {
             if (listedObjects.Contents.IsTruncated) {
               this.log('Is not finished. Rerun emptyBucket');
               return this.emptyBucket(bucket, dir);
             }
           });
-      });
+    }
+    
   }
 
-  deployS3() {
+  async deployS3() {
     let assetSets = this.config.targets;
     let uploadConcurrency = this.config.uploadConcurrency;
 
@@ -150,19 +157,20 @@ class Assets {
       .then(resources => {
       // Process asset sets in parallel (up to 3)
         return BbPromise.map(assetSets, assets => {
-          const prefix = assets.prefix || '';
+          const {prefix = '', bucket, empty } = assets;
           // Try to resolve the bucket name
-          return this.resolveBucket(resources, assets.bucket)
-            .then((bucket) => {
+          return this.resolveBucket(resources, bucket)
+            .then(async(bucket) => {
               if (this.options.bucket && this.options.bucket !== bucket) {
                 this.log(`Skipping bucket: ${bucket}`);
                 return Promise.resolve('');
               }
 
-              if(assets.empty) {
+              if(empty) {
+                await this.listItems(bucket,prefix)
                 this.log(`Emptying bucket: ${bucket}`);
-                return this.emptyBucket(bucket, prefix)
-                  .then(() => bucket);
+                // return this.emptyBucket(bucket, prefix)
+                //   .then(() => bucket);
               }
               return Promise.resolve(bucket);
             }).then(bucket => {
@@ -202,6 +210,13 @@ class Assets {
 
                   return this.provider.request('S3', 'putObject', details);
                 });
+              }).then(() => {
+                if(empty) {
+                
+                  this.log(`Emptying bucket: ${bucket}`);
+                  return this.emptyBucket(bucket, prefix)
+                  
+                }
               });
             });
         },
