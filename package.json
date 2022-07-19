@@ -1,6 +1,6 @@
 {
   "name": "serverless-s3-deploy-post-delete",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "S3 Asset copy for serverless with ability to delete old stuff after push",
   "main": "index.js",
   "scripts": {
